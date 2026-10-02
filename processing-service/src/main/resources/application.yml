@@ -1,0 +1,34 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: processing-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/flowbridge}
+    username: ${SPRING_DATASOURCE_USERNAME:flowuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:flowpassword}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USER:guest}
+    password: ${SPRING_RABBITMQ_PASS:guest}
+
+flowbridge:
+  rabbitmq:
+    exchange: flowbridge.direct
+    dlx-exchange: flowbridge.dlx
+    received-queue: document.received.queue
+    deliver-queue: document.deliver.queue
+    dlq-queue: document.dlq
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
