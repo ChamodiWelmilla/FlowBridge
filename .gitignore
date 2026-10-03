@@ -1,10 +1,19 @@
+# Build & Binary Outputs
 target/
 **/target/
+bin/
+**/bin/
+out/
+**/out/
+build/
+**/build/
 *.class
 *.jar
 *.war
 *.ear
 *.rar
+
+# IDE & Editor Files
 .idea/
 *.iml
 *.iws
@@ -12,9 +21,13 @@ target/
 .classpath
 .project
 .settings/
+.factorypath
 .vscode/
+.fleet/
 *.swp
 *~
+
+# OS & Environment Files
 .DS_Store
 .DS_Store?
 ._*
@@ -23,11 +36,19 @@ target/
 Icon?
 ehthumbs.db
 Thumbs.db
+.env
+.env.*
+
+# Logs & Temporary Files
 *.log
 logs/
 **/logs/
 tmp/
 temp/
-.env
-.env.*
+
+# Database Data Volumes
+postgres_data/
+**/postgres_data/
+
+# Maven Wrapper Jar Binary
 .mvn/wrapper/maven-wrapper.jar
