@@ -1,19 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
 import { DocumentForm } from './components/DocumentForm';
 import { LifecycleTracker } from './components/LifecycleTracker';
 import { DLQPanel } from './components/DLQPanel';
-import { authApi } from './api/client';
+import { authApi, documentApi } from './api/client';
+import { DocumentResponse } from './types';
 import { FileText, Activity, AlertOctagon, ShieldCheck, Lock, User, Network, Mail, Building2 } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [user, setUser] = useState<string | null>(authApi.getEnterpriseName());
+  const getInitialUser = (): string | null => {
+    const token = authApi.getToken();
+    const enterprise = authApi.getEnterpriseName();
+    if (!token || !enterprise) {
+      authApi.logout();
+      return null;
+    }
+    return enterprise;
+  };
+
+  const [user, setUser] = useState<string | null>(getInitialUser());
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'ingestion' | 'tracker' | 'dlq'>('ingestion');
   const [trackedDocId, setTrackedDocId] = useState<string>('');
+  const [myDocuments, setMyDocuments] = useState<DocumentResponse[]>([]);
 
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -22,13 +34,54 @@ export const App: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setEmail('');
+    setEnterpriseName('');
+    setPassword('');
+    setError('');
+  }, [isRegister, user]);
+
+  const fetchMyDocuments = async () => {
+    const token = authApi.getToken();
+    if (!user || !token) {
+      handleLogout();
+      return;
+    }
+    try {
+      const docs = await documentApi.getMyDocuments();
+      if (Array.isArray(docs)) {
+        setMyDocuments(docs);
+        if (!trackedDocId && docs.length > 0) {
+          setTrackedDocId(docs[0].documentId);
+        }
+      } else {
+        setMyDocuments([]);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch user documents', err);
+      setMyDocuments([]);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        handleLogout();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchMyDocuments();
+    }
+  }, [user, activeTab]);
+
   const handleDocumentSubmitted = (docId: string) => {
     setTrackedDocId(docId);
+    fetchMyDocuments();
   };
 
   const handleLogout = () => {
     authApi.logout();
     setUser(null);
+    setMyDocuments([]);
+    setTrackedDocId('');
   };
 
   const isValidEmail = (emailStr: string) => {
@@ -260,15 +313,33 @@ export const App: React.FC = () => {
 
         {activeTab === 'tracker' && (
           <div className="space-y-4">
-            <div className="bg-[#8B9A6E]/10 border border-sage-200 rounded-xl p-4 flex items-center space-x-3 shadow-sm">
-              <label className="text-xs font-semibold text-gray-700">Track Document ID:</label>
-              <input
-                type="text"
-                placeholder="e.g. DOC-8F72A1"
-                value={trackedDocId}
-                onChange={(e) => setTrackedDocId(e.target.value)}
-                className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#8B9A6E] font-mono"
-              />
+            <div className="bg-[#8B9A6E]/10 border border-sage-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center space-x-3 w-full md:w-auto">
+                <label className="text-xs font-bold text-gray-700 whitespace-nowrap">Select Your Document:</label>
+                <select
+                  value={trackedDocId}
+                  onChange={(e) => setTrackedDocId(e.target.value)}
+                  className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#8B9A6E] font-mono w-full md:w-96"
+                >
+                  <option value="">-- Select Enterprise Document --</option>
+                  {Array.isArray(myDocuments) && myDocuments.map((doc) => (
+                    <option key={doc.documentId} value={doc.documentId}>
+                      {doc.documentId} | {doc.documentType} ({doc.senderId} ➔ {doc.receiverId}) [{doc.status}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center space-x-2 w-full md:w-auto">
+                <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Or manual ID:</span>
+                <input
+                  type="text"
+                  placeholder="e.g. DOC-8F72A1"
+                  value={trackedDocId}
+                  onChange={(e) => setTrackedDocId(e.target.value)}
+                  className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#8B9A6E] font-mono w-full md:w-40"
+                />
+              </div>
             </div>
             <LifecycleTracker documentId={trackedDocId} />
           </div>

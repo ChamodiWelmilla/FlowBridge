@@ -29,7 +29,12 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
       const res = await documentApi.getDocumentStatus(documentId);
       setData(res);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Could not fetch document status');
+      if (err.response?.status === 403) {
+        setError(`🔒 Access Denied: Document ${documentId} does not belong to your enterprise.`);
+      } else {
+        setError(err.response?.data?.message || 'Could not fetch document status');
+      }
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -87,7 +92,7 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
         <div className="flex items-center justify-between min-w-[600px] space-x-2">
           {STAGES.map((stage, idx) => {
             const isCurrent = currentStatus === stage;
-            const isCompleted = data?.history.some((e) => e.newStatus === stage);
+            const isCompleted = Boolean(data?.history?.some((e) => e.newStatus === stage));
 
             let statusBg = 'bg-white text-gray-500 border-gray-200';
             if (isCurrent) {
@@ -123,7 +128,7 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
       </div>
 
       {/* Audit Event History Timeline */}
-      {data && (
+      {data && Array.isArray(data.history) && data.history.length > 0 && (
         <div>
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Audit Event Trail</h3>
           <div className="space-y-2">

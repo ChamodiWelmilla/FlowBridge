@@ -88,16 +88,30 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public DocumentResponse getDocumentById(String documentId) {
+    public List<DocumentResponse> getMyDocuments(String enterpriseName) {
+        if (enterpriseName == null || enterpriseName.isBlank()) {
+            return List.of();
+        }
+        return documentRepository.findByEnterpriseName(enterpriseName)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentResponse getDocumentById(String documentId, String enterpriseName) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document not found with ID: " + documentId));
+        validateEnterpriseAccess(document, enterpriseName);
         return mapToResponse(document);
     }
 
     @Transactional(readOnly = true)
-    public DocumentStatusResponse getDocumentStatus(String documentId) {
+    public DocumentStatusResponse getDocumentStatus(String documentId, String enterpriseName) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document not found with ID: " + documentId));
+
+        validateEnterpriseAccess(document, enterpriseName);
 
         List<DocumentEvent> events = documentEventRepository.findByDocumentIdOrderByCreatedAtAsc(documentId);
 
@@ -116,6 +130,21 @@ public class DocumentService {
                 .updatedAt(document.getUpdatedAt())
                 .history(history)
                 .build();
+    }
+
+    private void validateEnterpriseAccess(Document doc, String enterpriseName) {
+        if (enterpriseName == null || enterpriseName.isBlank()) {
+            return;
+        }
+        boolean isSender = doc.getSenderId() != null && doc.getSenderId().equalsIgnoreCase(enterpriseName);
+        boolean isReceiver = doc.getReceiverId() != null && doc.getReceiverId().equalsIgnoreCase(enterpriseName);
+
+        if (!isSender && !isReceiver) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Access denied: Document " + doc.getId() + " does not belong to enterprise '" + enterpriseName + "'"
+            );
+        }
     }
 
     private String generateDocumentId() {

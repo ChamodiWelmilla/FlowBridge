@@ -69,6 +69,10 @@ export const documentApi = {
     const res = await api.post('/api/v1/documents', payload);
     return res.data;
   },
+  getMyDocuments: async (): Promise<DocumentResponse[]> => {
+    const res = await api.get<DocumentResponse[]>('/api/v1/documents');
+    return res.data;
+  },
   getDocumentById: async (documentId: string): Promise<DocumentResponse> => {
     const res = await api.get<DocumentResponse>(`/api/v1/documents/${documentId}`);
     return res.data;

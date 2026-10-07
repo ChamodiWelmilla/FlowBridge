@@ -29,8 +29,28 @@ public class Document {
     @Column(name = "sender_id", nullable = false, length = 100)
     private String senderId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+        name = "sender_id",
+        referencedColumnName = "enterprise_name",
+        insertable = false,
+        updatable = false,
+        foreignKey = @ForeignKey(name = "fk_documents_sender_user")
+    )
+    private User sender;
+
     @Column(name = "receiver_id", nullable = false, length = 100)
     private String receiverId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+        name = "receiver_id",
+        referencedColumnName = "enterprise_name",
+        insertable = false,
+        updatable = false,
+        foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
+    private User receiver;
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;

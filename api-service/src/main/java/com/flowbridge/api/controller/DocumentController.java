@@ -47,15 +47,29 @@ public class DocumentController {
         ));
     }
 
+    @GetMapping
+    public ResponseEntity<java.util.List<DocumentResponse>> getMyDocuments(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String enterpriseName = userDetails != null ? userDetails.getUsername() : null;
+        java.util.List<DocumentResponse> documents = documentService.getMyDocuments(enterpriseName);
+        return ResponseEntity.ok(documents);
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<DocumentResponse> getDocumentById(@PathVariable("id") String documentId) {
-        DocumentResponse response = documentService.getDocumentById(documentId);
+    public ResponseEntity<DocumentResponse> getDocumentById(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable("id") String documentId) {
+        String enterpriseName = userDetails != null ? userDetails.getUsername() : null;
+        DocumentResponse response = documentService.getDocumentById(documentId, enterpriseName);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}/status")
-    public ResponseEntity<DocumentStatusResponse> getDocumentStatus(@PathVariable("id") String documentId) {
-        DocumentStatusResponse response = documentService.getDocumentStatus(documentId);
+    public ResponseEntity<DocumentStatusResponse> getDocumentStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable("id") String documentId) {
+        String enterpriseName = userDetails != null ? userDetails.getUsername() : null;
+        DocumentStatusResponse response = documentService.getDocumentStatus(documentId, enterpriseName);
         return ResponseEntity.ok(response);
     }
 }

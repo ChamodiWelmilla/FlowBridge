@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Lock, ShieldCheck, Mail, Building2 } from 'lucide-react';
 import { authApi } from '../api/client';
 
@@ -15,6 +15,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setEmail('');
+      setEnterpriseName('');
+      setPassword('');
+      setError('');
+    }
+  }, [isOpen, isRegister]);
 
   if (!isOpen) return null;
 
