@@ -1,4 +1,3 @@
-# Build & Binary Outputs
 target/
 **/target/
 bin/
@@ -13,7 +12,14 @@ build/
 *.ear
 *.rar
 
-# IDE & Editor Files
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+*.local
+
 .idea/
 *.iml
 *.iws
@@ -27,7 +33,6 @@ build/
 *.swp
 *~
 
-# OS & Environment Files
 .DS_Store
 .DS_Store?
 ._*
@@ -39,16 +44,13 @@ Thumbs.db
 .env
 .env.*
 
-# Logs & Temporary Files
 *.log
 logs/
 **/logs/
 tmp/
 temp/
 
-# Database Data Volumes
 postgres_data/
 **/postgres_data/
 
-# Maven Wrapper Jar Binary
 .mvn/wrapper/maven-wrapper.jar

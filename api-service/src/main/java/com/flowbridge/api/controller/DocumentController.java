@@ -12,15 +12,34 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+import com.flowbridge.api.repository.UserRepository;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+
 @RestController
 @RequestMapping("/api/v1/documents")
 @RequiredArgsConstructor
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final UserRepository userRepository;
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> submitDocument(@Valid @RequestBody DocumentSubmitRequest request) {
+    public ResponseEntity<Map<String, Object>> submitDocument(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody DocumentSubmitRequest request) {
+
+        if ((request.getSenderId() == null || request.getSenderId().isBlank()) && userDetails != null) {
+            userRepository.findByUsername(userDetails.getUsername())
+                    .ifPresent(u -> request.setSenderId(u.getEnterpriseName()));
+        }
+
+        if (request.getSenderId() == null || request.getSenderId().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Sender Enterprise ID could not be determined. Please log in or provide senderId."
+            ));
+        }
+
         DocumentResponse response = documentService.submitDocument(request);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
                 "documentId", response.getDocumentId(),

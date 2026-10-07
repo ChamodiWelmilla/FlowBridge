@@ -6,8 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlowBridge — Enterprise Document Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              sage: {
+                50: '#f6f7f4',
+                100: '#eaece5',
+                200: '#d6dcce',
+                300: '#b8c3ab',
+                400: '#9ba889',
+                500: '#8B9A6E', 
+                600: '#6f7e53',
+                700: '#576340',
+                800: '#475135',
+                900: '#3c432d',
+              }
+            }
+          }
+        }
+      }
+    </script>
   </head>
-  <body class="bg-gray-900 text-gray-100 min-h-screen">
+  <body class="bg-gray-50 text-gray-800 min-h-screen font-sans">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -36,6 +36,14 @@ public class RabbitMQProcessingConfig {
     }
 
     @Bean
+    public Queue documentReceivedQueue() {
+        return QueueBuilder.durable(receivedQueueName)
+                .withArgument("x-dead-letter-exchange", dlxExchangeName)
+                .withArgument("x-dead-letter-routing-key", "document.dlq")
+                .build();
+    }
+
+    @Bean
     public Queue documentDeliverQueue() {
         return QueueBuilder.durable(deliverQueueName)
                 .withArgument("x-dead-letter-exchange", dlxExchangeName)
@@ -46,6 +54,13 @@ public class RabbitMQProcessingConfig {
     @Bean
     public Queue deadLetterQueue() {
         return QueueBuilder.durable(dlqQueueName).build();
+    }
+
+    @Bean
+    public Binding receivedBinding(Queue documentReceivedQueue, DirectExchange directExchange) {
+        return BindingBuilder.bind(documentReceivedQueue)
+                .to(directExchange)
+                .with("document.received");
     }
 
     @Bean

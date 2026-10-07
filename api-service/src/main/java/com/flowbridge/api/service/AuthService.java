@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import com.flowbridge.api.dto.ChangePasswordRequest;
+import com.flowbridge.api.dto.UserProfileDto;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -31,6 +34,12 @@ public class AuthService {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Username is already taken");
         }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+        if (userRepository.existsByEnterpriseName(request.getEnterpriseName())) {
+            throw new IllegalArgumentException("Enterprise Name is already registered by another account");
+        }
 
         String role = (request.getRole() != null && !request.getRole().isBlank()) 
                 ? request.getRole() 
@@ -43,6 +52,8 @@ public class AuthService {
         User user = User.builder()
                 .id("USER-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .username(request.getUsername())
+                .email(request.getEmail())
+                .enterpriseName(request.getEnterpriseName())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(role)
                 .build();
@@ -59,10 +70,41 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String token = tokenProvider.generateToken(authentication);
 
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
-                .username(request.getUsername())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .enterpriseName(user.getEnterpriseName())
                 .build();
+    }
+
+    public UserProfileDto getProfile(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return UserProfileDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .enterpriseName(user.getEnterpriseName())
+                .role(user.getRole())
+                .build();
+    }
+
+    @Transactional
+    public void changePassword(String username, ChangePasswordRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }

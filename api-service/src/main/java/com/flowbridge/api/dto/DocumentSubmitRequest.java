@@ -18,7 +18,6 @@ public class DocumentSubmitRequest {
     @NotNull(message = "documentType is required")
     private DocumentType documentType;
 
-    @NotBlank(message = "senderId is required")
     private String senderId;
 
     @NotBlank(message = "receiverId is required")
