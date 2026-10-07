@@ -72,4 +72,14 @@ public class DocumentController {
         DocumentStatusResponse response = documentService.getDocumentStatus(documentId, enterpriseName);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/action")
+    public ResponseEntity<DocumentResponse> processDocumentAction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable("id") String documentId,
+            @RequestBody com.flowbridge.api.dto.DocumentActionRequest actionRequest) {
+        String enterpriseName = userDetails != null ? userDetails.getUsername() : null;
+        DocumentResponse response = documentService.processDocumentAction(documentId, enterpriseName, actionRequest);
+        return ResponseEntity.ok(response);
+    }
 }

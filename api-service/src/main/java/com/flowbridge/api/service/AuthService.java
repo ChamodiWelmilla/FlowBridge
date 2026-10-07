@@ -20,11 +20,14 @@ import java.util.UUID;
 import com.flowbridge.api.dto.ChangePasswordRequest;
 import com.flowbridge.api.dto.UserProfileDto;
 
+import com.flowbridge.api.repository.DocumentRepository;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final DocumentRepository documentRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
@@ -100,5 +103,26 @@ public class AuthService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+    }
+
+    public java.util.List<String> getRegisteredEnterprises() {
+        java.util.Set<String> set = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        userRepository.findAll().forEach(u -> {
+            if (u.getEnterpriseName() != null && !u.getEnterpriseName().isBlank()) {
+                set.add(u.getEnterpriseName().trim());
+            }
+        });
+
+        documentRepository.findAll().forEach(d -> {
+            if (d.getSenderId() != null && !d.getSenderId().isBlank()) {
+                set.add(d.getSenderId().trim());
+            }
+            if (d.getReceiverId() != null && !d.getReceiverId().isBlank()) {
+                set.add(d.getReceiverId().trim());
+            }
+        });
+
+        return new java.util.ArrayList<>(set);
     }
 }

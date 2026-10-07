@@ -41,14 +41,14 @@ public class DeliveryService {
 
         String targetCode = message.getTargetPartnerCode();
         Partner partner = partnerRepository.findByPartnerCode(targetCode)
-                .orElseGet(() -> Partner.builder()
+                .orElseGet(() -> partnerRepository.save(Partner.builder()
                         .id("P-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                         .partnerCode(targetCode)
                         .name("Mock Partner " + targetCode)
                         .adapterType("PARTNER_A")
                         .endpointUrl("http://localhost:8083/api/v1/mock-partner/partner-a")
                         .active(true)
-                        .build());
+                        .build()));
 
         PartnerAdapter adapter = adapterFactory.getAdapter(partner.getAdapterType());
         int maxRetries = retryPolicy.getMaxRetries();

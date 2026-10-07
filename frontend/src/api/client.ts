@@ -54,6 +54,10 @@ export const authApi = {
     });
     return res.data;
   },
+  getRegisteredEnterprises: async (): Promise<string[]> => {
+    const res = await api.get<string[]>('/api/v1/auth/enterprises');
+    return Array.isArray(res.data) ? res.data : [];
+  },
   logout: () => {
     localStorage.removeItem('flowbridge_jwt');
     localStorage.removeItem('flowbridge_email');
@@ -79,6 +83,10 @@ export const documentApi = {
   },
   getDocumentStatus: async (documentId: string): Promise<DocumentStatusResponse> => {
     const res = await api.get<DocumentStatusResponse>(`/api/v1/documents/${documentId}/status`);
+    return res.data;
+  },
+  performDocumentAction: async (documentId: string, actionData: import('../types').DocumentActionRequest): Promise<DocumentResponse> => {
+    const res = await api.post<DocumentResponse>(`/api/v1/documents/${documentId}/action`, actionData);
     return res.data;
   },
 };

@@ -43,6 +43,23 @@ public class DocumentService {
     public DocumentResponse submitDocument(DocumentSubmitRequest request) {
         String documentId = generateDocumentId();
 
+        List<com.flowbridge.api.domain.DocumentItem> items = new java.util.ArrayList<>();
+        if (request.getItems() != null) {
+            for (DocumentSubmitRequest.ItemDto itemDto : request.getItems()) {
+                items.add(com.flowbridge.api.domain.DocumentItem.builder()
+                        .id("ITM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                        .documentId(documentId)
+                        .itemSku(itemDto.getItemSku())
+                        .itemName(itemDto.getItemName() != null ? itemDto.getItemName() : "Item")
+                        .description(itemDto.getDescription())
+                        .quantity(itemDto.getQuantity() != null ? itemDto.getQuantity() : java.math.BigDecimal.ONE)
+                        .unitPrice(itemDto.getUnitPrice() != null ? itemDto.getUnitPrice() : java.math.BigDecimal.ZERO)
+                        .taxRate(itemDto.getTaxRate())
+                        .lineTotal(itemDto.getLineTotal() != null ? itemDto.getLineTotal() : java.math.BigDecimal.ZERO)
+                        .build());
+            }
+        }
+
         Document document = Document.builder()
                 .id(documentId)
                 .externalReference(request.getReference())
@@ -51,6 +68,29 @@ public class DocumentService {
                 .receiverId(request.getReceiverId())
                 .amount(request.getAmount())
                 .status(DocumentStatus.RECEIVED)
+                .issueDate(request.getIssueDate())
+                .dueDate(request.getDueDate())
+                .currency(request.getCurrency())
+                .subtotal(request.getSubtotal())
+                .taxAmount(request.getTaxAmount())
+                .discount(request.getDiscount())
+                .notes(request.getNotes())
+                .senderTaxId(request.getSenderTaxId())
+                .senderAddress(request.getSenderAddress())
+                .recipientTaxId(request.getRecipientTaxId())
+                .recipientAddress(request.getRecipientAddress())
+                .items(items)
+                .paymentTerms(request.getPaymentTerms())
+                .paymentStatus(request.getPaymentStatus())
+                .acceptedPaymentMethods(request.getAcceptedPaymentMethods())
+                .poReference(request.getPoReference())
+                .deliveryWindow(request.getDeliveryWindow())
+                .shippingMethod(request.getShippingMethod())
+                .requestedBy(request.getRequestedBy())
+                .approvalStatus(request.getApprovalStatus())
+                .originalInvoiceReference(request.getOriginalInvoiceReference())
+                .reasonCode(request.getReasonCode())
+                .refundImpact(request.getRefundImpact())
                 .build();
 
         Document savedDoc = documentRepository.save(document);
@@ -115,11 +155,21 @@ public class DocumentService {
 
         List<DocumentEvent> events = documentEventRepository.findByDocumentIdOrderByCreatedAtAsc(documentId);
 
+        String failureReason = null;
+        for (int i = events.size() - 1; i >= 0; i--) {
+            DocumentEvent e = events.get(i);
+            if (e.getEventType() != null && (e.getEventType().contains("FAILED") || e.getEventType().contains("REJECTED") || (e.getNewStatus() != null && e.getNewStatus().contains("FAILED")))) {
+                failureReason = e.getPayload();
+                break;
+            }
+        }
+
         List<DocumentStatusResponse.EventSummary> history = events.stream()
                 .map(e -> DocumentStatusResponse.EventSummary.builder()
                         .eventType(e.getEventType())
                         .previousStatus(e.getPreviousStatus())
                         .newStatus(e.getNewStatus())
+                        .payload(e.getPayload())
                         .timestamp(e.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
@@ -127,6 +177,7 @@ public class DocumentService {
         return DocumentStatusResponse.builder()
                 .documentId(document.getId())
                 .status(document.getStatus())
+                .failureReason(failureReason)
                 .updatedAt(document.getUpdatedAt())
                 .history(history)
                 .build();
@@ -157,7 +208,141 @@ public class DocumentService {
         return sb.toString();
     }
 
+    @Transactional
+    public DocumentResponse processDocumentAction(String documentId, String enterpriseName, com.flowbridge.api.dto.DocumentActionRequest actionReq) {
+        Document doc = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with ID: " + documentId));
+
+        validateEnterpriseAccess(doc, enterpriseName);
+
+        String action = actionReq.getAction() != null ? actionReq.getAction().toUpperCase() : "";
+        DocumentStatus oldStatus = doc.getStatus();
+
+        if (oldStatus == DocumentStatus.DECLINED || oldStatus == DocumentStatus.REVISION_REJECTED) {
+            throw new IllegalArgumentException("This document has been declined. Workflow is permanently closed and no further actions can be taken.");
+        }
+
+        if (oldStatus == DocumentStatus.CHANGE_REQUESTED) {
+            String lastRequester = doc.getRequestedBy();
+            boolean isRequester = lastRequester != null && lastRequester.equalsIgnoreCase(enterpriseName);
+            if (isRequester) {
+                boolean isDeclineAction = action.contains("DECLINE") || action.contains("REJECT");
+                if (!isDeclineAction) {
+                    throw new IllegalArgumentException("As the party who posted this change request, you cannot accept your own request or submit another change request until the other party responds. Only Decline is available.");
+                }
+            }
+        }
+
+        DocumentStatus newStatus = oldStatus;
+        String eventType = "DOCUMENT_UPDATED";
+
+        switch (action) {
+            case "ACCEPT":
+            case "SIGN":
+                newStatus = DocumentStatus.ACCEPTED;
+                eventType = "DOCUMENT_ACCEPTED_AND_SIGNED";
+                doc.setSignedBy(actionReq.getSignerName() != null && !actionReq.getSignerName().isBlank() ? actionReq.getSignerName() : enterpriseName);
+                doc.setSignerRole(actionReq.getSignerRole() != null && !actionReq.getSignerRole().isBlank() ? actionReq.getSignerRole() : "Authorized Representative");
+                doc.setSignatureData("SIG-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase() + "-" + (enterpriseName != null ? enterpriseName.replaceAll("\\s+", "_") : "RECIPIENT"));
+                doc.setPaymentStatus("ACCEPTED_BY_RECEIVER");
+                doc.setApprovalStatus("APPROVED");
+                break;
+            case "DECLINE":
+            case "REJECT":
+                newStatus = DocumentStatus.DECLINED;
+                eventType = "DOCUMENT_DECLINED";
+                doc.setPaymentStatus("DECLINED");
+                doc.setApprovalStatus("REJECTED");
+                break;
+            case "REQUEST_CHANGE":
+            case "REQUEST_CHANGES":
+            case "REQUEST_REVISION":
+            case "REQUEST_REVISIONS":
+            case "REVISION":
+            case "CHANGE_REQUESTED":
+                newStatus = DocumentStatus.CHANGE_REQUESTED;
+                eventType = "DOCUMENT_CHANGE_REQUESTED";
+                doc.setApprovalStatus("REVISION_NEEDED");
+                doc.setRequestedBy(enterpriseName != null ? enterpriseName : doc.getRequestedBy());
+                break;
+            case "ACCEPT_REVISION":
+            case "SENDER_ACCEPT_REVISION":
+                newStatus = DocumentStatus.REVISION_ACCEPTED;
+                eventType = "REVISION_REQUEST_ACCEPTED";
+                doc.setApprovalStatus("REVISION_AGREED");
+                break;
+            case "COUNTER_REVISION":
+            case "SENDER_COUNTER_REVISION":
+                newStatus = DocumentStatus.CHANGE_REQUESTED;
+                eventType = "COUNTER_REVISION_SUBMITTED";
+                doc.setApprovalStatus("COUNTER_PROPOSAL_SENT");
+                doc.setRequestedBy(enterpriseName != null ? enterpriseName : doc.getRequestedBy());
+                break;
+            case "REJECT_REVISION":
+            case "SENDER_REJECT_REVISION":
+                newStatus = DocumentStatus.DECLINED;
+                eventType = "REVISION_REQUEST_DECLINED";
+                doc.setApprovalStatus("REVISION_DECLINED");
+                break;
+            case "OPEN":
+            case "VIEW":
+                if (doc.getStatus() == DocumentStatus.DELIVERED) {
+                    newStatus = DocumentStatus.OPENED;
+                    eventType = "DOCUMENT_OPENED_BY_RECEIVER";
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported action: " + actionReq.getAction());
+        }
+
+        if (actionReq.getComments() != null && !actionReq.getComments().isBlank()) {
+            doc.setActionComments(actionReq.getComments());
+        }
+        doc.setActionTimestamp(java.time.Instant.now());
+        doc.setStatus(newStatus);
+        Document savedDoc = documentRepository.save(doc);
+
+        DocumentEvent event = DocumentEvent.builder()
+                .id("EVT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .documentId(savedDoc.getId())
+                .eventType(eventType)
+                .previousStatus(oldStatus != null ? oldStatus.name() : null)
+                .newStatus(newStatus != null ? newStatus.name() : null)
+                .payload("Action by [" + (enterpriseName != null ? enterpriseName : "User") + "]: " + (actionReq.getComments() != null ? actionReq.getComments() : action))
+                .build();
+        documentEventRepository.save(event);
+
+        return mapToResponse(savedDoc);
+    }
+
     private DocumentResponse mapToResponse(Document doc) {
+        List<DocumentSubmitRequest.ItemDto> itemDtos = new java.util.ArrayList<>();
+        if (doc.getItems() != null) {
+            for (com.flowbridge.api.domain.DocumentItem item : doc.getItems()) {
+                itemDtos.add(DocumentSubmitRequest.ItemDto.builder()
+                        .itemSku(item.getItemSku())
+                        .itemName(item.getItemName())
+                        .description(item.getDescription())
+                        .quantity(item.getQuantity())
+                        .unitPrice(item.getUnitPrice())
+                        .taxRate(item.getTaxRate())
+                        .lineTotal(item.getLineTotal())
+                        .build());
+            }
+        }
+
+        String failureReason = null;
+        if (doc.getStatus() != null && doc.getStatus().name().contains("FAILED")) {
+            List<DocumentEvent> events = documentEventRepository.findByDocumentIdOrderByCreatedAtAsc(doc.getId());
+            for (int i = events.size() - 1; i >= 0; i--) {
+                DocumentEvent e = events.get(i);
+                if (e.getEventType() != null && (e.getEventType().contains("FAILED") || e.getEventType().contains("REJECTED"))) {
+                    failureReason = e.getPayload();
+                    break;
+                }
+            }
+        }
+
         return DocumentResponse.builder()
                 .documentId(doc.getId())
                 .reference(doc.getExternalReference())
@@ -169,6 +354,35 @@ public class DocumentService {
                 .version(doc.getVersion())
                 .createdAt(doc.getCreatedAt())
                 .updatedAt(doc.getUpdatedAt())
+                .issueDate(doc.getIssueDate())
+                .dueDate(doc.getDueDate())
+                .currency(doc.getCurrency())
+                .subtotal(doc.getSubtotal())
+                .taxAmount(doc.getTaxAmount())
+                .discount(doc.getDiscount())
+                .notes(doc.getNotes())
+                .senderTaxId(doc.getSenderTaxId())
+                .senderAddress(doc.getSenderAddress())
+                .recipientTaxId(doc.getRecipientTaxId())
+                .recipientAddress(doc.getRecipientAddress())
+                .items(itemDtos)
+                .paymentTerms(doc.getPaymentTerms())
+                .paymentStatus(doc.getPaymentStatus())
+                .acceptedPaymentMethods(doc.getAcceptedPaymentMethods())
+                .poReference(doc.getPoReference())
+                .deliveryWindow(doc.getDeliveryWindow())
+                .shippingMethod(doc.getShippingMethod())
+                .requestedBy(doc.getRequestedBy())
+                .approvalStatus(doc.getApprovalStatus())
+                .originalInvoiceReference(doc.getOriginalInvoiceReference())
+                .reasonCode(doc.getReasonCode())
+                .refundImpact(doc.getRefundImpact())
+                .signatureData(doc.getSignatureData())
+                .signedBy(doc.getSignedBy())
+                .signerRole(doc.getSignerRole())
+                .actionComments(doc.getActionComments())
+                .actionTimestamp(doc.getActionTimestamp())
+                .failureReason(failureReason)
                 .build();
     }
 }

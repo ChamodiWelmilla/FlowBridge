@@ -55,4 +55,9 @@ public class AuthController {
         authService.changePassword(userDetails.getUsername(), request);
         return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
     }
+
+    @GetMapping("/enterprises")
+    public ResponseEntity<java.util.List<String>> getEnterprises() {
+        return ResponseEntity.ok(authService.getRegisteredEnterprises());
+    }
 }

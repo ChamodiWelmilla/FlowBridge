@@ -42,6 +42,11 @@ public class DocumentEvent {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = Instant.now();
+        if (this.id == null || this.id.isBlank()) {
+            this.id = "EVT-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        }
+        if (this.createdAt == null) {
+            this.createdAt = Instant.now();
+        }
     }
 }

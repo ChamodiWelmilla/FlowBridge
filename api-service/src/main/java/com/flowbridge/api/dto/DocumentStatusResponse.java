@@ -15,6 +15,7 @@ public class DocumentStatusResponse {
 
     private String documentId;
     private DocumentStatus status;
+    private String failureReason;
     private Instant updatedAt;
     private List<EventSummary> history;
 
@@ -27,6 +28,7 @@ public class DocumentStatusResponse {
         private String eventType;
         private String previousStatus;
         private String newStatus;
+        private String payload;
         private Instant timestamp;
     }
 }

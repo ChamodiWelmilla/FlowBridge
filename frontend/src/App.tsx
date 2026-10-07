@@ -4,6 +4,7 @@ import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
 import { DocumentForm } from './components/DocumentForm';
 import { LifecycleTracker } from './components/LifecycleTracker';
+import { DocumentListTracker } from './components/DocumentListTracker';
 import { DLQPanel } from './components/DLQPanel';
 import { authApi, documentApi } from './api/client';
 import { DocumentResponse } from './types';
@@ -67,9 +68,42 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (!user) return;
+    fetchMyDocuments();
+
+    const interval = setInterval(() => {
+      if (activeTab === 'tracker') {
+        fetchMyDocuments();
+      }
+    }, 2500);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('flowbridge_doc_sync_channel');
+      bc.onmessage = () => {
+        fetchMyDocuments();
+      };
+    } catch (e) {}
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'flowbridge_sync_event') {
+        fetchMyDocuments();
+      }
+    };
+
+    const handleCustomEvent = () => {
       fetchMyDocuments();
-    }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('flowbridge_doc_updated', handleCustomEvent);
+
+    return () => {
+      clearInterval(interval);
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('flowbridge_doc_updated', handleCustomEvent);
+    };
   }, [user, activeTab]);
 
   const handleDocumentSubmitted = (docId: string) => {
@@ -264,7 +298,6 @@ export const App: React.FC = () => {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Tab Navigation */}
         <div className="flex border-b border-sage-200 space-x-2 pb-1">
           <button
             onClick={() => setActiveTab('ingestion')}
@@ -303,46 +336,22 @@ export const App: React.FC = () => {
           </button>
         </div>
 
-        {/* Tab Content */}
         {activeTab === 'ingestion' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DocumentForm onDocumentSubmitted={handleDocumentSubmitted} />
-            <LifecycleTracker documentId={trackedDocId} />
+          <div className="max-w-4xl mx-auto">
+            <DocumentForm
+              onDocumentSubmitted={handleDocumentSubmitted}
+              onViewTracker={() => setActiveTab('tracker')}
+            />
           </div>
         )}
 
         {activeTab === 'tracker' && (
-          <div className="space-y-4">
-            <div className="bg-[#8B9A6E]/10 border border-sage-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
-              <div className="flex items-center space-x-3 w-full md:w-auto">
-                <label className="text-xs font-bold text-gray-700 whitespace-nowrap">Select Your Document:</label>
-                <select
-                  value={trackedDocId}
-                  onChange={(e) => setTrackedDocId(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#8B9A6E] font-mono w-full md:w-96"
-                >
-                  <option value="">-- Select Enterprise Document --</option>
-                  {Array.isArray(myDocuments) && myDocuments.map((doc) => (
-                    <option key={doc.documentId} value={doc.documentId}>
-                      {doc.documentId} | {doc.documentType} ({doc.senderId} ➔ {doc.receiverId}) [{doc.status}]
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center space-x-2 w-full md:w-auto">
-                <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Or manual ID:</span>
-                <input
-                  type="text"
-                  placeholder="e.g. DOC-8F72A1"
-                  value={trackedDocId}
-                  onChange={(e) => setTrackedDocId(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#8B9A6E] font-mono w-full md:w-40"
-                />
-              </div>
-            </div>
-            <LifecycleTracker documentId={trackedDocId} />
-          </div>
+          <DocumentListTracker
+            documents={myDocuments}
+            selectedDocId={trackedDocId}
+            onSelectDocument={(docId) => setTrackedDocId(docId)}
+            onRefresh={fetchMyDocuments}
+          />
         )}
 
         {activeTab === 'dlq' && <DLQPanel />}

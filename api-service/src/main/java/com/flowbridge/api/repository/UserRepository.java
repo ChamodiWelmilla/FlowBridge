@@ -14,4 +14,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByEmail(String email);
 
     boolean existsByEnterpriseName(String enterpriseName);
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT u.enterpriseName FROM User u ORDER BY u.enterpriseName ASC")
+    java.util.List<String> findAllEnterpriseNames();
 }
