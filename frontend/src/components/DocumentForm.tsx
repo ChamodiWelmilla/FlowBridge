@@ -8,7 +8,7 @@ interface DocumentFormProps {
 }
 
 export const DocumentForm: React.FC<DocumentFormProps> = ({ onDocumentSubmitted }) => {
-  const currentEnterprise = authApi.getEnterpriseName() || authApi.getUser() || 'Sender Enterprise';
+  const currentEnterprise = authApi.getEnterpriseName() || 'Sender Enterprise';
   
   const [documentType, setDocumentType] = useState<DocumentType>('INVOICE');
   const [receiverId, setReceiverId] = useState('');

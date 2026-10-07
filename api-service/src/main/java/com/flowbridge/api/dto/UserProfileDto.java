@@ -9,7 +9,6 @@ import lombok.*;
 @Builder
 public class UserProfileDto {
     private String id;
-    private String username;
     private String email;
     private String enterpriseName;
     private String role;

@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { X, Lock, User, ShieldCheck, Mail, Building2 } from 'lucide-react';
+import { X, Lock, ShieldCheck, Mail, Building2 } from 'lucide-react';
 import { authApi } from '../api/client';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (username: string) => void;
+  onSuccess: (enterpriseName: string) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [isRegister, setIsRegister] = useState(false);
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [enterpriseName, setEnterpriseName] = useState('');
   const [password, setPassword] = useState('');
@@ -19,19 +18,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
   if (!isOpen) return null;
 
+  const isValidEmail = (emailStr: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (isRegister) {
+      if (!enterpriseName.trim()) {
+        setError('Enterprise / Company Name cannot be empty.');
+        return;
+      }
+      if (!email.trim()) {
+        setError('Email address cannot be empty.');
+        return;
+      }
+      if (!isValidEmail(email.trim())) {
+        setError('Please enter a valid email address format (e.g. admin@company.com).');
+        return;
+      }
+      if (!password || password.length < 6) {
+        setError('Password must be at least 6 characters long.');
+        return;
+      }
+    } else {
+      if (!enterpriseName.trim()) {
+        setError('Enterprise Name is required for login.');
+        return;
+      }
+      if (!password) {
+        setError('Password is required.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
       if (isRegister) {
-        await authApi.register(username, email, enterpriseName, password);
-        const res = await authApi.login(username, password);
-        onSuccess(res.username);
+        await authApi.register(email.trim(), enterpriseName.trim(), password);
+        const res = await authApi.login(enterpriseName.trim(), password);
+        onSuccess(res.enterpriseName || enterpriseName.trim());
       } else {
-        const res = await authApi.login(username, password);
-        onSuccess(res.username);
+        const res = await authApi.login(enterpriseName.trim(), password);
+        onSuccess(res.enterpriseName || enterpriseName.trim());
       }
       onClose();
     } catch (err: any) {
@@ -57,10 +89,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              {isRegister ? 'Register Enterprise Account' : 'JWT Authentication'}
+              {isRegister ? 'Register Enterprise Account' : 'Enterprise Login'}
             </h2>
             <p className="text-xs text-gray-500">
-              {isRegister ? 'Enter enterprise details to create account' : 'Enter credentials to acquire Bearer token'}
+              {isRegister ? 'Enter details to register your enterprise' : 'Enter enterprise credentials to access dashboard'}
             </p>
           </div>
         </div>
@@ -73,57 +105,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Username</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Enterprise / Company Name</label>
             <div className="relative">
-              <User className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              <Building2 className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <input
                 type="text"
                 required
                 autoComplete="off"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
+                value={enterpriseName}
+                onChange={(e) => setEnterpriseName(e.target.value)}
+                placeholder="e.g. Apple Inc. or TSMC"
                 className="w-full bg-sage-50/50 border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B9A6E] focus:ring-1 focus:ring-[#8B9A6E]"
               />
             </div>
+            {isRegister && (
+              <span className="text-[10px] text-gray-400 mt-0.5 block">Enterprise name is permanent and cannot be changed.</span>
+            )}
           </div>
 
           {isRegister && (
-            <>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                  <input
-                    type="email"
-                    required
-                    autoComplete="off"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. admin@company.com"
-                    className="w-full bg-sage-50/50 border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B9A6E] focus:ring-1 focus:ring-[#8B9A6E]"
-                  />
-                </div>
-                <span className="text-[10px] text-gray-400 mt-0.5 block">Email address cannot be changed after registration.</span>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                <input
+                  type="email"
+                  required
+                  autoComplete="off"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. admin@company.com"
+                  className="w-full bg-sage-50/50 border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B9A6E] focus:ring-1 focus:ring-[#8B9A6E]"
+                />
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Enterprise / Company Name</label>
-                <div className="relative">
-                  <Building2 className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    required
-                    autoComplete="off"
-                    value={enterpriseName}
-                    onChange={(e) => setEnterpriseName(e.target.value)}
-                    placeholder="e.g. Apple Inc. or TSMC"
-                    className="w-full bg-sage-50/50 border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B9A6E] focus:ring-1 focus:ring-[#8B9A6E]"
-                  />
-                </div>
-                <span className="text-[10px] text-gray-400 mt-0.5 block">Enterprise name is permanent and cannot be changed.</span>
-              </div>
-            </>
+              <span className="text-[10px] text-gray-400 mt-0.5 block">Email address cannot be changed after registration.</span>
+            </div>
           )}
 
           <div>
@@ -147,7 +163,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             disabled={loading}
             className="w-full bg-[#8B9A6E] hover:bg-sage-600 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors shadow-md mt-2"
           >
-            {loading ? 'Authenticating...' : isRegister ? 'Register Enterprise & Login' : 'Login'}
+            {loading ? 'Authenticating...' : isRegister ? 'Register Enterprise & Login' : 'Login to Dashboard'}
           </button>
         </form>
 
@@ -157,7 +173,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             onClick={() => setIsRegister(!isRegister)}
             className="text-xs text-[#8B9A6E] hover:underline font-medium"
           >
-            {isRegister ? 'Already have an account? Login' : "Don't have an account? Register Enterprise"}
+            {isRegister ? 'Already registered? Login' : "Don't have an enterprise account? Register"}
           </button>
         </div>
       </div>

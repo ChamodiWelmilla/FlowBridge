@@ -31,9 +31,6 @@ public class AuthService {
 
     @Transactional
     public String register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username is already taken");
-        }
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email is already registered");
         }
@@ -51,7 +48,6 @@ public class AuthService {
 
         User user = User.builder()
                 .id("USER-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
-                .username(request.getUsername())
                 .email(request.getEmail())
                 .enterpriseName(request.getEnterpriseName())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -64,31 +60,29 @@ public class AuthService {
 
     public AuthResponse login(AuthRequest request) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(request.getEnterpriseName(), request.getPassword())
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String token = tokenProvider.generateToken(authentication);
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = userRepository.findByEnterpriseName(request.getEnterpriseName())
+                .orElseThrow(() -> new IllegalArgumentException("Enterprise not found"));
 
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
-                .username(user.getUsername())
                 .email(user.getEmail())
                 .enterpriseName(user.getEnterpriseName())
                 .build();
     }
 
-    public UserProfileDto getProfile(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public UserProfileDto getProfile(String enterpriseName) {
+        User user = userRepository.findByEnterpriseName(enterpriseName)
+                .orElseThrow(() -> new IllegalArgumentException("Enterprise not found"));
 
         return UserProfileDto.builder()
                 .id(user.getId())
-                .username(user.getUsername())
                 .email(user.getEmail())
                 .enterpriseName(user.getEnterpriseName())
                 .role(user.getRole())
@@ -96,9 +90,9 @@ public class AuthService {
     }
 
     @Transactional
-    public void changePassword(String username, ChangePasswordRequest request) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public void changePassword(String enterpriseName, ChangePasswordRequest request) {
+        User user = userRepository.findByEnterpriseName(enterpriseName)
+                .orElseThrow(() -> new IllegalArgumentException("Enterprise not found"));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");

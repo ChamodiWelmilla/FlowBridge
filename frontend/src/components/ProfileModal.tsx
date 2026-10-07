@@ -37,7 +37,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     } catch (err: any) {
       setProfile({
         id: 'USER-LOCAL',
-        username: authApi.getUser() || '',
         email: authApi.getEmail() || 'N/A',
         enterpriseName: authApi.getEnterpriseName() || 'N/A',
         role: 'ROLE_USER',
@@ -150,20 +149,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               />
             </div>
             <p className="text-[10px] text-gray-400 mt-1">Email address cannot be changed after account creation.</p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Username</label>
-            <div className="relative">
-              <User className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                disabled
-                readOnly
-                value={profile?.username || 'Loading...'}
-                className="w-full bg-gray-100 border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-700 font-medium cursor-not-allowed select-none opacity-80"
-              />
-            </div>
           </div>
         </div>
 

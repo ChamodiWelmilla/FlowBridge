@@ -30,8 +30,7 @@ public class DocumentController {
             @Valid @RequestBody DocumentSubmitRequest request) {
 
         if ((request.getSenderId() == null || request.getSenderId().isBlank()) && userDetails != null) {
-            userRepository.findByUsername(userDetails.getUsername())
-                    .ifPresent(u -> request.setSenderId(u.getEnterpriseName()));
+            request.setSenderId(userDetails.getUsername());
         }
 
         if (request.getSenderId() == null || request.getSenderId().isBlank()) {

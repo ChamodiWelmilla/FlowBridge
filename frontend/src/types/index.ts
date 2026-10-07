@@ -49,14 +49,12 @@ export interface DocumentStatusResponse {
 export interface AuthResponse {
   token: string;
   type: string;
-  username: string;
   email?: string;
   enterpriseName?: string;
 }
 
 export interface UserProfile {
   id: string;
-  username: string;
   email: string;
   enterpriseName: string;
   role: string;

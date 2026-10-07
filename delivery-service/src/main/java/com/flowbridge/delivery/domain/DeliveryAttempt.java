@@ -29,6 +29,10 @@ public class DeliveryAttempt {
     @Column(name = "partner_id", nullable = false, length = 64)
     private String partnerId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "partner_id", insertable = false, updatable = false, foreignKey = @ForeignKey(name = "fk_delivery_attempt_partner"))
+    private Partner partner;
+
     @Column(name = "attempt_number", nullable = false)
     private int attemptNumber;
 

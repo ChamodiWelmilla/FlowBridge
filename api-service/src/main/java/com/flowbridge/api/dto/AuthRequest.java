@@ -10,8 +10,8 @@ import lombok.*;
 @Builder
 public class AuthRequest {
 
-    @NotBlank(message = "username is required")
-    private String username;
+    @NotBlank(message = "enterpriseName is required")
+    private String enterpriseName;
 
     @NotBlank(message = "password is required")
     private String password;

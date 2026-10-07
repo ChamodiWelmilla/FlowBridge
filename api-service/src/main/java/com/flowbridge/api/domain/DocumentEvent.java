@@ -21,6 +21,10 @@ public class DocumentEvent {
     @Column(name = "document_id", nullable = false, length = 64)
     private String documentId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "document_id", insertable = false, updatable = false, foreignKey = @ForeignKey(name = "fk_document_event_document"))
+    private Document document;
+
     @Column(name = "event_type", nullable = false, length = 50)
     private String eventType;
 

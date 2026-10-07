@@ -24,19 +24,17 @@ api.interceptors.request.use((config) => {
 });
 
 export const authApi = {
-  login: async (username: string, password: string): Promise<AuthResponse> => {
-    const res = await api.post<AuthResponse>('/api/v1/auth/login', { username, password });
+  login: async (enterpriseName: string, password: string): Promise<AuthResponse> => {
+    const res = await api.post<AuthResponse>('/api/v1/auth/login', { enterpriseName, password });
     if (res.data.token) {
       localStorage.setItem('flowbridge_jwt', res.data.token);
-      localStorage.setItem('flowbridge_user', res.data.username);
       if (res.data.email) localStorage.setItem('flowbridge_email', res.data.email);
       if (res.data.enterpriseName) localStorage.setItem('flowbridge_enterprise', res.data.enterpriseName);
     }
     return res.data;
   },
-  register: async (username: string, email: string, enterpriseName: string, password: string): Promise<{ message: string }> => {
+  register: async (email: string, enterpriseName: string, password: string): Promise<{ message: string }> => {
     const res = await api.post<{ message: string }>('/api/v1/auth/register', {
-      username,
       email,
       enterpriseName,
       password,
@@ -58,12 +56,10 @@ export const authApi = {
   },
   logout: () => {
     localStorage.removeItem('flowbridge_jwt');
-    localStorage.removeItem('flowbridge_user');
     localStorage.removeItem('flowbridge_email');
     localStorage.removeItem('flowbridge_enterprise');
   },
   getToken: () => localStorage.getItem('flowbridge_jwt'),
-  getUser: () => localStorage.getItem('flowbridge_user'),
   getEmail: () => localStorage.getItem('flowbridge_email') || '',
   getEnterpriseName: () => localStorage.getItem('flowbridge_enterprise') || '',
 };
