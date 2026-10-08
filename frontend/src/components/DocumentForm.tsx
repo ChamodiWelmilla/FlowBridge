@@ -186,8 +186,8 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({ onDocumentSubmitted,
         setError(`Line item #${i + 1} ("${item.itemName}") quantity must be greater than 0.`);
         return;
       }
-      if ((Number(item.unitPrice) || 0) < 0) {
-        setError(`Line item #${i + 1} ("${item.itemName}") unit price cannot be negative.`);
+      if ((Number(item.unitPrice) || 0) <= 0) {
+        setError(`Line item #${i + 1} ("${item.itemName}") unit price must be greater than $0.00.`);
         return;
       }
       if ((Number(item.taxRate) || 0) < 0) {
@@ -676,7 +676,7 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({ onDocumentSubmitted,
                     <td className="p-2">
                       <input
                         type="number"
-                        min="0"
+                        min="0.01"
                         step="0.01"
                         required
                         value={item.unitPrice}
