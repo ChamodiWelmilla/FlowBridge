@@ -174,26 +174,24 @@ export const DocumentListTracker: React.FC<DocumentListTrackerProps> = ({
                   <th className="p-3 text-right">Grand Total</th>
                   <th className="p-3">Date</th>
                   <th className="p-3">Status</th>
-                  <th className="p-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sage-100 bg-white">
                 {filteredDocs.map((doc) => {
-                  const isSelected = doc.documentId === selectedDocId;
+                  const handleOpenInNewTab = () => {
+                    const url = `${window.location.origin}${window.location.pathname}?docId=${encodeURIComponent(doc.documentId)}`;
+                    window.open(url, '_blank');
+                  };
+
                   return (
                     <tr
                       key={doc.documentId}
-                      onClick={() => onSelectDocument(doc.documentId)}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'bg-sage-100/60 border-l-4 border-l-[#8B9A6E]'
-                          : 'hover:bg-sage-50/50'
-                      }`}
+                      onClick={handleOpenInNewTab}
+                      className="cursor-pointer transition-colors hover:bg-sage-50/70"
                     >
                       <td className="p-3 font-mono">
                         <div className="font-bold text-gray-900 flex items-center space-x-1.5">
                           <span>{doc.documentId}</span>
-                          {isSelected && <span className="bg-[#8B9A6E] text-white text-[9px] px-1.5 py-0.2 rounded font-sans">Active</span>}
                         </div>
                         {doc.reference && (
                           <div className="text-[11px] text-gray-500 font-sans">{doc.reference}</div>
@@ -217,24 +215,6 @@ export const DocumentListTracker: React.FC<DocumentListTrackerProps> = ({
                       </td>
 
                       <td className="p-3">{getStatusBadge(doc.status)}</td>
-
-                      <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectDocument(doc.documentId);
-                          }}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 mx-auto ${
-                            isSelected
-                              ? 'bg-[#8B9A6E] text-white shadow-sm'
-                              : 'bg-sage-100 text-[#8B9A6E] hover:bg-sage-200'
-                          }`}
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>{isSelected ? 'Viewing' : 'Details'}</span>
-                        </button>
-                      </td>
                     </tr>
                   );
                 })}
@@ -243,12 +223,6 @@ export const DocumentListTracker: React.FC<DocumentListTrackerProps> = ({
           </div>
         )}
       </div>
-
-      {selectedDocId && (
-        <div id="lifecycle-details-section">
-          <LifecycleTracker documentId={selectedDocId} />
-        </div>
-      )}
     </div>
   );
 };

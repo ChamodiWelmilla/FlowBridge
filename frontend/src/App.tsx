@@ -28,6 +28,15 @@ export const App: React.FC = () => {
   const [trackedDocId, setTrackedDocId] = useState<string>('');
   const [myDocuments, setMyDocuments] = useState<DocumentResponse[]>([]);
 
+  const [urlDocId, setUrlDocId] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('docId') || params.get('documentId') || null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [enterpriseName, setEnterpriseName] = useState('');
@@ -273,6 +282,25 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (urlDocId) {
+    return (
+      <div className="min-h-screen bg-sage-50/40 text-gray-800 font-sans flex flex-col">
+        <Header
+          user={user}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenProfile={() => setIsProfileOpen(true)}
+          onLogout={handleLogout}
+        />
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-4">
+          <LifecycleTracker documentId={urlDocId} />
+        </main>
+        <footer className="border-t border-sage-200 py-4 text-center text-xs text-gray-500 bg-white">
+          FlowBridge Enterprise Integration Platform &copy; 2026
+        </footer>
       </div>
     );
   }
