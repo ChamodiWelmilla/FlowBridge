@@ -114,6 +114,8 @@ public class DocumentService {
                 .receiverId(savedDoc.getReceiverId())
                 .amount(savedDoc.getAmount())
                 .status(savedDoc.getStatus().name())
+                .poReference(savedDoc.getPoReference())
+                .originalInvoiceReference(savedDoc.getOriginalInvoiceReference())
                 .build();
 
         try {

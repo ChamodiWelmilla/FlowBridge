@@ -40,6 +40,29 @@ const STAGES: DocumentStatus[] = [
   'DELIVERED',
 ];
 
+const formatUserFriendlyErrorMessage = (rawReason?: string): string => {
+  if (!rawReason || !rawReason.trim()) {
+    return 'Document failed validation strategy or partner business rules.';
+  }
+
+  let cleaned = rawReason.replace(/^3-Way Matching Failure:\s*/i, '');
+  cleaned = cleaned.replace(/^Over-Credit Protection Failure:\s*/i, '');
+
+  if (cleaned.includes('No enum constant') || cleaned.includes("status is 'D'") || cleaned.includes("status is 'DECLINED'")) {
+    return 'Referenced Purchase Order is Declined or Closed and cannot accept new billing.';
+  }
+
+  cleaned = cleaned.replace(/status is 'D'/g, "is Declined or Closed");
+  cleaned = cleaned.replace(/status is 'DECLINED'/g, "is Declined or Closed");
+  cleaned = cleaned.replace(/'D' \(Declined or Closed\)/g, "Declined or Closed");
+
+  if (cleaned.includes('com.flowbridge') || cleaned.includes('NullPointerException')) {
+    return 'Referenced Purchase Order is Declined or Closed and cannot accept new billing.';
+  }
+
+  return cleaned;
+};
+
 export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }) => {
   const currentEnterprise = authApi.getEnterpriseName();
   const openedDocsRef = useRef<Set<string>>(new Set());
@@ -242,39 +265,44 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
         <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-5 shadow-sm space-y-3">
           <div className="flex items-start space-x-3">
             <div className="bg-red-100 text-red-700 p-2.5 rounded-xl border border-red-200 shrink-0">
-              <AlertOctagon className="w-6 h-6" />
+              <AlertOctagon className="w-6 h-6 text-red-600" />
             </div>
             <div className="space-y-1 flex-1">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-sm font-extrabold text-red-900 flex items-center gap-2">
-                  <span>State Machine Execution Halted</span>
-                  <span className="bg-red-200 text-red-900 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold uppercase">
-                    {currentStatus || 'FAILED'}
+                  <span>Document Validation Failure</span>
+                  <span className="bg-red-200 text-red-900 text-xs px-2.5 py-0.5 rounded-full font-mono font-bold uppercase">
+                    {currentStatus || 'VALIDATION_FAILED'}
                   </span>
                 </h3>
                 <span className="text-[11px] text-red-700 font-mono font-semibold">
-                  Visible to Sender ({docDetails?.senderId || 'Sender'}) &amp; Receiver ({docDetails?.receiverId || 'Receiver'})
+                  Sender ({docDetails?.senderId || 'Sender'}) &amp; Receiver ({docDetails?.receiverId || 'Receiver'})
                 </span>
               </div>
               <p className="text-xs text-red-800">
-                Workflow execution halted during server processing. Below is the diagnostic exception log explaining what went wrong:
+                This document failed enterprise business rule validation during system processing.
               </p>
             </div>
           </div>
 
-          <div className="bg-white border border-red-200 rounded-xl p-3.5 font-mono text-xs text-red-900 space-y-1">
-            <span className="text-[10px] text-red-600 uppercase font-bold tracking-wider block">Diagnostic Exception Log:</span>
-            <p className="font-semibold text-xs leading-relaxed">
-              {docDetails?.failureReason || data?.failureReason || 'Document execution failed validation strategy or partner delivery rules.'}
+          <div className="bg-white border border-red-200 rounded-xl p-3.5 text-xs text-red-900 space-y-1.5 shadow-2xs">
+            <span className="text-[10px] text-red-600 uppercase font-bold tracking-wider block flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+              Validation Error Details:
+            </span>
+            <p className="font-semibold text-xs leading-relaxed text-red-950 bg-red-50/50 p-2 rounded-lg border border-red-100">
+              {formatUserFriendlyErrorMessage(docDetails?.failureReason || data?.failureReason)}
             </p>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-red-700 pt-1">
-            <span className="flex items-center space-x-1 font-medium">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Document has been quarantined in DLQ Admin system</span>
+          <div className="flex items-center justify-between text-[11px] text-red-700 pt-1 border-t border-red-200/60">
+            <span className="flex items-center space-x-1.5 font-medium">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+              <span><strong>Next Step:</strong> Review referenced Purchase Order / Invoice status and resubmit with valid details.</span>
             </span>
-            <span className="font-mono">Status Code: 422 / DLQ_HALT</span>
+            <span className="font-mono bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+              Action Required
+            </span>
           </div>
         </div>
       )}
@@ -290,7 +318,7 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
               <div>
                 <h3 className="text-sm font-extrabold text-green-900 flex items-center gap-2">
                   <span>Digitally Signed &amp; Accepted by Recipient</span>
-                  <span className="bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold uppercase">Official Seal</span>
+                  <span className="bg-green-200 text-green-900 text-xs px-2.5 py-0.5 rounded-full font-mono font-bold uppercase">Official Seal</span>
                 </h3>
                 <p className="text-xs text-green-800">
                   Recipient enterprise <strong className="font-bold">{docDetails.receiverId}</strong> has verified and signed this document.
@@ -298,7 +326,7 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
               </div>
             </div>
             {docDetails.signatureData && (
-              <span className="text-[10px] font-mono bg-white text-green-800 border border-green-200 px-2.5 py-1 rounded-lg font-bold">
+              <span className="text-xs font-mono bg-white text-green-800 border border-green-200 px-2.5 py-1 rounded-lg font-bold">
                 {docDetails.signatureData}
               </span>
             )}
@@ -306,18 +334,18 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs bg-white/80 p-3 rounded-xl border border-green-200">
             <div>
-              <span className="text-[10px] text-gray-500 block font-semibold">Signer Name &amp; Title</span>
+              <span className="text-xs text-gray-500 block font-semibold">Signer Name &amp; Title</span>
               <span className="font-bold text-gray-900">{docDetails.signedBy || docDetails.receiverId}</span>
-              {docDetails.signerRole && <span className="text-gray-500 block text-[11px] font-medium">{docDetails.signerRole}</span>}
+              {docDetails.signerRole && <span className="text-gray-500 block text-xs font-medium">{docDetails.signerRole}</span>}
             </div>
             <div>
-              <span className="text-[10px] text-gray-500 block font-semibold">Signature Timestamp</span>
+              <span className="text-xs text-gray-500 block font-semibold">Signature Timestamp</span>
               <span className="font-mono text-gray-900 font-semibold">
                 {docDetails.actionTimestamp ? new Date(docDetails.actionTimestamp).toLocaleString() : '-'}
               </span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-500 block font-semibold">Recipient Notes</span>
+              <span className="text-xs text-gray-500 block font-semibold">Recipient Notes</span>
               <span className="text-gray-800 italic">{docDetails.actionComments || 'No acceptance comments provided.'}</span>
             </div>
           </div>
@@ -333,7 +361,7 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
             <div>
               <h3 className="text-sm font-extrabold text-red-900 flex items-center gap-2">
                 <span>Document Status: DECLINED (Workflow Permanently Closed)</span>
-                <span className="bg-red-200 text-red-900 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold uppercase">Final State</span>
+                <span className="bg-red-200 text-red-900 text-xs px-2.5 py-0.5 rounded-full font-mono font-bold uppercase">Final State</span>
               </h3>
               <p className="text-xs text-red-800">
                 This document has been declined. Customer has viewed the posted change request and marked the document as declined. No further modifications or actions are allowed.
@@ -896,11 +924,9 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
 
             let statusBg = 'bg-white text-gray-500 border-gray-200';
             if (isCurrent) {
-              if (stage === 'ACCEPTED') statusBg = 'bg-green-600 text-white border-green-600 shadow-md scale-105 font-bold';
-              else if (stage === 'DECLINED') statusBg = 'bg-red-600 text-white border-red-600 shadow-md scale-105 font-bold';
+              if (stage === 'ACCEPTED' || stage === 'REVISION_ACCEPTED') statusBg = 'bg-green-600 text-white border-green-600 shadow-md scale-105 font-bold';
+              else if (stage === 'DECLINED' || stage === 'REVISION_REJECTED' || stage === 'VALIDATION_FAILED' || stage === 'DELIVERY_FAILED') statusBg = 'bg-red-600 text-white border-red-600 shadow-md scale-105 font-bold';
               else if (stage === 'CHANGE_REQUESTED') statusBg = 'bg-amber-600 text-white border-amber-600 shadow-md scale-105 font-bold';
-              else if (stage === 'REVISION_ACCEPTED') statusBg = 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105 font-bold';
-              else if (stage === 'REVISION_REJECTED') statusBg = 'bg-orange-600 text-white border-orange-600 shadow-md scale-105 font-bold';
               else statusBg = 'bg-[#8B9A6E] text-white border-[#8B9A6E] shadow-md scale-105 font-bold';
             } else if (isCompleted) {
               statusBg = 'bg-sage-100 text-sage-900 border-sage-300 font-semibold';
@@ -908,7 +934,7 @@ export const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ documentId }
 
             return (
               <React.Fragment key={stage}>
-                <div className={`flex flex-col items-center px-3 py-2 rounded-xl border text-xs font-mono transition-all ${statusBg}`}>
+                <div className={`flex flex-col items-center px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${statusBg}`}>
                   {isCompleted && !isCurrent ? (
                     <CheckCircle className="w-4 h-4 mb-1 text-[#8B9A6E]" />
                   ) : (

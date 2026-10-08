@@ -57,9 +57,33 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({ onDocumentSubmitted,
 
   // PO specific
   const [deliveryWindow, setDeliveryWindow] = useState('');
+  const [deliveryStartDate, setDeliveryStartDate] = useState('');
+  const [deliveryEndDate, setDeliveryEndDate] = useState('');
   const [shippingMethod, setShippingMethod] = useState('');
   const [requestedBy, setRequestedBy] = useState('');
   const [approvalStatus, setApprovalStatus] = useState('SENT');
+
+  const handleStartDateChange = (val: string) => {
+    setDeliveryStartDate(val);
+    if (val && deliveryEndDate) {
+      setDeliveryWindow(`${val} to ${deliveryEndDate}`);
+    } else if (val) {
+      setDeliveryWindow(val);
+    } else {
+      setDeliveryWindow(deliveryEndDate ? deliveryEndDate : '');
+    }
+  };
+
+  const handleEndDateChange = (val: string) => {
+    setDeliveryEndDate(val);
+    if (deliveryStartDate && val) {
+      setDeliveryWindow(`${deliveryStartDate} to ${val}`);
+    } else if (val) {
+      setDeliveryWindow(val);
+    } else {
+      setDeliveryWindow(deliveryStartDate ? deliveryStartDate : '');
+    }
+  };
 
   // Credit note specific
   const [originalInvoiceReference, setOriginalInvoiceReference] = useState('');
@@ -156,6 +180,8 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({ onDocumentSubmitted,
 
     // PO Specific
     setDeliveryWindow('');
+    setDeliveryStartDate('');
+    setDeliveryEndDate('');
     setShippingMethod('');
     setRequestedBy('');
     setApprovalStatus('SENT');
@@ -524,13 +550,27 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({ onDocumentSubmitted,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">Delivery / Shipping Window</label>
-                <input
-                  type="text"
-                  value={deliveryWindow}
-                  onChange={(e) => setDeliveryWindow(e.target.value)}
-                  placeholder="e.g. 2026-10-20 to 2026-10-25"
-                  className="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm"
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-semibold block mb-0.5">Start Date</span>
+                    <input
+                      type="date"
+                      value={deliveryStartDate}
+                      onChange={(e) => handleStartDateChange(e.target.value)}
+                      className="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-mono focus:outline-none focus:border-[#8B9A6E]"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-semibold block mb-0.5">End Date (Optional)</span>
+                    <input
+                      type="date"
+                      min={deliveryStartDate || undefined}
+                      value={deliveryEndDate}
+                      onChange={(e) => handleEndDateChange(e.target.value)}
+                      className="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-mono focus:outline-none focus:border-[#8B9A6E]"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

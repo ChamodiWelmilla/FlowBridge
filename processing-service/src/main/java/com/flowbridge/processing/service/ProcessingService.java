@@ -132,7 +132,21 @@ public class ProcessingService {
     }
 
     private void transitionToFailed(Document doc, String reason) {
-        updateDocumentState(doc, DocumentStatus.VALIDATION_FAILED, "VALIDATION_FAILED", reason);
-        log.warn("Document [{}] marked as VALIDATION_FAILED. Reason: {}", doc.getId(), reason);
+        String cleanReason = sanitizeErrorMessage(reason);
+        updateDocumentState(doc, DocumentStatus.VALIDATION_FAILED, "VALIDATION_FAILED", cleanReason);
+        log.warn("Document [{}] marked as VALIDATION_FAILED. Reason: {}", doc.getId(), cleanReason);
+    }
+
+    private String sanitizeErrorMessage(String msg) {
+        if (msg == null || msg.isBlank()) {
+            return "Document validation failed due to a system verification constraint.";
+        }
+        if (msg.contains("No enum constant") || msg.contains("status is 'D'")) {
+            return "Referenced Purchase Order is Declined or Closed and cannot accept new billing.";
+        }
+        if (msg.contains("com.flowbridge") || msg.contains("NullPointerException")) {
+            return "Validation system encountered an unexpected internal data mapping constraint.";
+        }
+        return msg;
     }
 }

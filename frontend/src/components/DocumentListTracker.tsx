@@ -43,42 +43,36 @@ export const DocumentListTracker: React.FC<DocumentListTrackerProps> = ({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'DELIVERED':
+      case 'ACCEPTED':
+      case 'REVISION_ACCEPTED':
         return (
-          <span className="bg-green-100 text-green-800 border border-green-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1">
+          <span className="bg-green-100 text-green-800 border border-green-200 px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center space-x-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-            <span>DELIVERED</span>
-          </span>
-        );
-      case 'DELIVERING':
-      case 'PROCESSING':
-      case 'VALIDATED':
-        return (
-          <span className="bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1 animate-pulse">
-            <Clock className="w-3.5 h-3.5 text-blue-600" />
             <span>{status}</span>
           </span>
         );
-      case 'RECEIVED':
-      case 'VALIDATING':
-        return (
-          <span className="bg-yellow-100 text-yellow-800 border border-yellow-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1">
-            <Clock className="w-3.5 h-3.5 text-yellow-600" />
-            <span>{status}</span>
-          </span>
-        );
+      case 'DECLINED':
+      case 'REVISION_REJECTED':
       case 'VALIDATION_FAILED':
       case 'DELIVERY_FAILED':
         return (
-          <span className="bg-red-100 text-red-800 border border-red-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1">
+          <span className="bg-red-100 text-red-800 border border-red-200 px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center space-x-1">
             <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
             <span>{status}</span>
           </span>
         );
+      case 'DELIVERED':
+      case 'DELIVERING':
+      case 'PROCESSING':
+      case 'VALIDATED':
+      case 'RECEIVED':
+      case 'VALIDATING':
+      case 'OPENED':
       default:
         return (
-          <span className="bg-gray-100 text-gray-800 border border-gray-200 px-2.5 py-1 rounded-full text-xs font-bold font-mono">
-            {status}
+          <span className="bg-sage-100 text-sage-900 border border-sage-300 px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center space-x-1">
+            <Clock className="w-3.5 h-3.5 text-[#8B9A6E]" />
+            <span>{status}</span>
           </span>
         );
     }
@@ -87,13 +81,13 @@ export const DocumentListTracker: React.FC<DocumentListTrackerProps> = ({
   const getTypeBadge = (type: DocumentType) => {
     switch (type) {
       case 'INVOICE':
-        return <span className="bg-sage-100 text-[#8B9A6E] font-bold px-2 py-0.5 rounded text-[11px] border border-sage-200">INVOICE</span>;
+        return <span className="bg-sage-100 text-[#8B9A6E] font-semibold px-2.5 py-1 rounded-full text-xs border border-sage-200">INVOICE</span>;
       case 'ORDER':
-        return <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] border border-amber-200">PURCHASE ORDER</span>;
+        return <span className="bg-amber-100 text-amber-800 font-semibold px-2.5 py-1 rounded-full text-xs border border-amber-200">PURCHASE ORDER</span>;
       case 'CREDIT_NOTE':
-        return <span className="bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded text-[11px] border border-purple-200">CREDIT NOTE</span>;
+        return <span className="bg-purple-100 text-purple-800 font-semibold px-2.5 py-1 rounded-full text-xs border border-purple-200">CREDIT NOTE</span>;
       default:
-        return <span className="bg-gray-100 text-gray-700 font-bold px-2 py-0.5 rounded text-[11px]">{type}</span>;
+        return <span className="bg-gray-100 text-gray-700 font-semibold px-2.5 py-1 rounded-full text-xs border border-gray-200">{type}</span>;
     }
   };
 

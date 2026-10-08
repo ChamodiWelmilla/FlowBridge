@@ -39,6 +39,12 @@ public class Document {
     @Column(nullable = false, length = 50)
     private DocumentStatus status;
 
+    @Column(name = "po_reference", length = 100)
+    private String poReference;
+
+    @Column(name = "original_invoice_reference", length = 100)
+    private String originalInvoiceReference;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

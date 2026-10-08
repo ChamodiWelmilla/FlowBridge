@@ -19,4 +19,6 @@ public class DocumentMessage implements Serializable {
     private String receiverId;
     private BigDecimal amount;
     private String status;
+    private String poReference;
+    private String originalInvoiceReference;
 }
