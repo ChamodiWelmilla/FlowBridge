@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package com.flowbridge.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.flowbridge.grpc";
+option java_outer_classname = "DocumentProto";
+
+// Document Message for gRPC RPC calls
+message DocumentGrpcRequest {
+  string document_id = 1;
+  string reference = 2;
+  string document_type = 3;
+  string sender_id = 4;
+  string receiver_id = 5;
+  double amount = 6;
+  string po_reference = 7;
+  string original_invoice_reference = 8;
+}
+
+// Response Message for gRPC RPC calls
+message DocumentGrpcResponse {
+  string document_id = 1;
+  string status = 2;
+  bool is_valid = 3;
+  string failure_reason = 4;
+}
+
+// gRPC Service Interface Definition
+service DocumentValidationGrpcService {
+  rpc ValidateDocument (DocumentGrpcRequest) returns (DocumentGrpcResponse);
+  rpc GetDocumentStatus (DocumentGrpcRequest) returns (DocumentGrpcResponse);
+}
