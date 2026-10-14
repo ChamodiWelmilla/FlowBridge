@@ -1,6 +1,14 @@
 server:
   port: 8081
 
+grpc:
+  server:
+    enabled: false
+  client:
+    processing-service:
+      address: 'static://${GRPC_PROCESSING_SERVICE_HOST:localhost}:${GRPC_PROCESSING_SERVICE_PORT:9090}'
+      negotiationType: PLAINTEXT
+
 spring:
   application:
     name: api-service
